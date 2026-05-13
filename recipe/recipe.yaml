@@ -4,11 +4,11 @@ context:
 package:
   name: gbs
   version: ${{ version }}
-source:  
+source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 99ebebd9a2c753ea406f6c9726400a68b3ff773424c754766bd1031875233747
 build:
-  number: 0
+  number: 1
   script:
     - if: unix
       then: |
