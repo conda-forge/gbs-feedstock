@@ -8,7 +8,7 @@ source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 99ebebd9a2c753ea406f6c9726400a68b3ff773424c754766bd1031875233747
 build:
-  number: 1
+  number: 2
   script:
     - if: unix
       then: |
@@ -52,11 +52,13 @@ requirements:
     - nlopt
     - vtk
     - eigen-abi-devel >=3.3.9 # turns c+20 warning off
+    - libboost-devel
     - rapidjson
     - libiges >=1.0.2
   run:
     - python
     - numpy
+    - libboost-headers
     - libiges >=1.0.2
     - jupyterlab
     - pythreejs
