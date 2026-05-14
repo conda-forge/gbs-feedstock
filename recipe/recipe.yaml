@@ -8,7 +8,7 @@ source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
   sha256: a0c69c19fa430afb3e857e3202fcd58f5b437945e0a31af210366ae43254364c
 build:
-  number: 0
+  number: 1
   script:
     - if: unix
       then: |
