@@ -1,10 +1,10 @@
 # The C++ test suite (GBS_BUILD_TESTS) uses std::to_chars / std::format on
 # doubles (C++20). Those libc++ symbols are gated as "available starting
-# macOS 13.4", so with the default conda-forge osx-64 deployment target the
-# tests fail to compile with:
+# macOS 13.4", so with the default conda-forge osx-64 stdlib the tests fail to
+# compile with:
 #   error: 'to_chars' is unavailable: introduced in macOS 13.4
-# gbs' own CI pins macos-13 (Intel) for the same reason. Raise the deployment
-# target to 13.4 on macOS only -- the conda SDK already ships the symbols, so
-# only the availability floor (-mmacosx-version-min) needs bumping.
-MACOSX_DEPLOYMENT_TARGET:  # [osx]
-  - "13.4"                 # [osx]
+# gbs' own CI pins macos-13 (Intel) for the same reason. Raise the macOS stdlib
+# floor to 13.4 (conda-forge's sanctioned knob; MACOSX_DEPLOYMENT_TARGET is
+# rejected by the linter). osx only -- leaves linux/win untouched.
+c_stdlib_version:  # [osx]
+  - "13.4"         # [osx]
