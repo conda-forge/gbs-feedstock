@@ -2,15 +2,13 @@
 # doubles (C++20). Those libc++ symbols are gated as "introduced in macOS 13.4",
 # so with the default conda-forge osx-64 stdlib the tests fail to compile with:
 #   error: 'to_chars' is unavailable: introduced in macOS 13.4
-# gbs' own CI pins macos-13 (Intel) for the same reason. Raise the macOS
-# deployment target (stdlib floor) to 13.4 so the symbols are available.
-# (c_stdlib_version is conda-forge's sanctioned knob; MACOSX_DEPLOYMENT_TARGET is
-# rejected by the linter.)
-c_stdlib_version:  # [osx]
-  - "13.4"         # [osx]
-# There is no 13.4 macOS SDK to download (conda-forge-ci-setup only ships
-# 13.0/13.1/13.3/14.x/15.x), and the SDK otherwise defaults to the deployment
-# target. Pin it to a real SDK >= 13.4: 14.0 contains the to_chars symbols and
-# building against it with a 13.4 deployment target is the normal arrangement.
+# The macOS deployment target therefore has to be raised to at least 13.4. But
+# conda-forge packages the deployment-target stdlib (and the matching SDK) only
+# for discrete versions -- 13.0, 13.1, 13.3, 14.0, 14.2, ... -- with NO 13.4, so
+# requesting 13.4 fails to solve (no macosx_deployment_target_osx-64 13.4) and
+# has no 13.4 SDK to download. 14.0 is the smallest packaged version >= 13.4, so
+# pin the stdlib floor (and the matching SDK) to 14.0. osx only.
+c_stdlib_version:    # [osx]
+  - "14.0"           # [osx]
 MACOSX_SDK_VERSION:  # [osx]
   - "14.0"           # [osx]
