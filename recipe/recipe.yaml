@@ -1,45 +1,70 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 context:
-  version: "0.4.5"
+  version: "0.4.5.4"
 package:
   name: gbs
   version: ${{ version }}
 source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: a0c69c19fa430afb3e857e3202fcd58f5b437945e0a31af210366ae43254364c
+  sha256: 7232cd09a9a0319b0af2989edcf134e72c93eddf74c550775fe73a2a1eac1525
 build:
-  number: 1
+  number: 0
   script:
+    # NOTE: the real CMake options are GBS_-prefixed (see gbs/CMakeLists.txt).
+    # The previously used USE_RENDER / USE_PYTHON_BINDINGS names matched no
+    # option and only worked through the defaults; they are fixed here.
+    # GBS_BUILD_TESTS=TRUE builds the C++ test suite and we run it with ctest
+    # (like gbs' own CI) so the package is actually exercised against the
+    # current nlopt/vtk/... — an import-only test would not catch a numerical
+    # regression in the nlopt-driven approximation/interpolation code.
     - if: unix
       then: |
         cmake ${CMAKE_ARGS} -GNinja \
           -D CMAKE_BUILD_TYPE:STRING="Release" \
-          -D USE_OCCT_UTILS:BOOL=FALSE \
-          -D USE_CUDA:BOOL=FALSE \
-          -D GBS_BUILD_TESTS:BOOL=FALSE \
-          -D USE_RENDER:BOOL=TRUE \
-          -D USE_PYTHON_BINDINGS=TRUE \
-          -D BUILD_DOC=FALSE \
-          -D USE_CUDA=FALSE \
+          -D GBS_USE_OCCT_UTILS:BOOL=FALSE \
+          -D GBS_USE_CUDA:BOOL=FALSE \
+          -D GBS_USE_MODULES:BOOL=FALSE \
+          -D GBS_BUILD_DOC:BOOL=FALSE \
+          -D GBS_BUILD_STUBS:BOOL=FALSE \
+          -D GBS_USE_RENDER:BOOL=TRUE \
+          -D GBS_USE_PYTHON_BINDINGS:BOOL=TRUE \
+          -D GBS_BUILD_TESTS:BOOL=TRUE \
           -D CMAKE_INSTALL_PREFIX=$PREFIX \
           . -B _build
         cmake --build _build --parallel ${CPU_COUNT}
         cmake --install _build
+        # C++ tests (ctest). gbs-render is a SHARED lib installed in $PREFIX/lib;
+        # expose it (and vtk/nlopt/...) at run time. No display needed: gbs' CI
+        # runs ctest without xvfb on every OS.
+        export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
+        export DYLD_FALLBACK_LIBRARY_PATH="$PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
+        ctest --test-dir _build --output-on-failure -C Release
     - if: win
       then: |
         cmake %CMAKE_ARGS% -GNinja ^
           -D CMAKE_BUILD_TYPE:STRING="Release" ^
-          -D USE_OCCT_UTILS:BOOL=FALSE ^
-          -D USE_CUDA:BOOL=FALSE ^
-          -D GBS_BUILD_TESTS:BOOL=FALSE ^
-          -D USE_RENDER:BOOL=TRUE ^
-          -D USE_PYTHON_BINDINGS=TRUE ^
-          -D BUILD_DOC=FALSE ^
-          -D USE_CUDA=FALSE ^
+          -D GBS_USE_OCCT_UTILS:BOOL=FALSE ^
+          -D GBS_USE_CUDA:BOOL=FALSE ^
+          -D GBS_USE_MODULES:BOOL=FALSE ^
+          -D GBS_BUILD_DOC:BOOL=FALSE ^
+          -D GBS_BUILD_STUBS:BOOL=FALSE ^
+          -D GBS_USE_RENDER:BOOL=TRUE ^
+          -D GBS_USE_PYTHON_BINDINGS:BOOL=TRUE ^
+          -D GBS_BUILD_TESTS:BOOL=TRUE ^
           -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+          -D CMAKE_RUNTIME_OUTPUT_DIRECTORY=%SRC_DIR%\_build\bin ^
           . -B _build
+        if errorlevel 1 exit 1
         cmake --build _build --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
         cmake --install _build
+        if errorlevel 1 exit 1
+        :: C++ tests (ctest). Test exes + gbs-render.dll are co-located in
+        :: _build\bin (CMAKE_RUNTIME_OUTPUT_DIRECTORY) so gtest_discover_tests
+        :: finds gbs-render.dll at build time; the other DLLs (vtk/nlopt/tbb)
+        :: are in %LIBRARY_PREFIX%\bin, already on PATH in the build env.
+        ctest --test-dir _build --output-on-failure -C Release
+        if errorlevel 1 exit 1
 requirements:
   build:
     - ${{ compiler('cxx') }}
@@ -55,6 +80,7 @@ requirements:
     - libboost-devel
     - rapidjson
     - libiges >=1.0.2
+    - gtest   # C++ tests: gbs picks up GTest via find_package in a conda build
   run:
     - python
     - numpy
@@ -68,6 +94,36 @@ tests:
   - python:
       imports:
         - pygbs.gbs
+  # Python test suite (pytest), like gbs' CI. conftest.py forces off-screen
+  # rendering and neutralizes the blocking plot_* / render_actors helpers when
+  # PYVISTA_OFF_SCREEN is set, so the numerical assertions run without a window.
+  # The three test_json / test_mesh / test_shaping modules instead build a real
+  # pyvista/VTK render window directly, which needs a live GL context and
+  # segfaults on a headless conda runner (no display). They exercise rendering,
+  # not the nlopt-driven numerics, and are covered by gbs' own CI (which runs
+  # with a display) -- so they are skipped here to keep the package test robust.
+  - script:
+      - if: unix
+        then: |
+          export PYVISTA_OFF_SCREEN=true
+          pytest python/tests/ -v --timeout=120 -ra \
+            --ignore=python/tests/test_json.py \
+            --ignore=python/tests/test_mesh.py \
+            --ignore=python/tests/test_shaping.py
+      - if: win
+        then: |
+          set PYVISTA_OFF_SCREEN=true
+          pytest python\tests\ -v --timeout=120 -ra ^
+            --ignore=python/tests/test_json.py ^
+            --ignore=python/tests/test_mesh.py ^
+            --ignore=python/tests/test_shaping.py
+    requirements:
+      run:
+        - pytest
+        - pytest-timeout
+    files:
+      source:
+        - python/tests/
 about:
   homepage: http://github.com/ssg-aero/gbs
   summary: Geometry BSplines - A C++ header library for BSplines curves and surfaces

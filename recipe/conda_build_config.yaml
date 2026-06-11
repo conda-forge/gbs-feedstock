@@ -1,0 +1,14 @@
+# The C++ test suite (GBS_BUILD_TESTS) uses std::to_chars / std::format on
+# doubles (C++20). Those libc++ symbols are gated as "introduced in macOS 13.4",
+# so with the default conda-forge osx-64 stdlib the tests fail to compile with:
+#   error: 'to_chars' is unavailable: introduced in macOS 13.4
+# The macOS deployment target therefore has to be raised to at least 13.4. But
+# conda-forge packages the deployment-target stdlib (and the matching SDK) only
+# for discrete versions -- 13.0, 13.1, 13.3, 14.0, 14.2, ... -- with NO 13.4, so
+# requesting 13.4 fails to solve (no macosx_deployment_target_osx-64 13.4) and
+# has no 13.4 SDK to download. 14.0 is the smallest packaged version >= 13.4, so
+# pin the stdlib floor (and the matching SDK) to 14.0. osx only.
+c_stdlib_version:    # [osx]
+  - "14.0"           # [osx]
+MACOSX_SDK_VERSION:  # [osx]
+  - "14.0"           # [osx]
