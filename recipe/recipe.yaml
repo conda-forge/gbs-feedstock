@@ -8,7 +8,7 @@ source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 7232cd09a9a0319b0af2989edcf134e72c93eddf74c550775fe73a2a1eac1525
 build:
-  number: 0
+  number: 1
   script:
     # NOTE: the real CMake options are GBS_-prefixed (see gbs/CMakeLists.txt).
     # The previously used USE_RENDER / USE_PYTHON_BINDINGS names matched no
