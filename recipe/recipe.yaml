@@ -8,7 +8,7 @@ source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 7232cd09a9a0319b0af2989edcf134e72c93eddf74c550775fe73a2a1eac1525
 build:
-  number: 2
+  number: 3
   script:
     # NOTE: the real CMake options are GBS_-prefixed (see gbs/CMakeLists.txt).
     # The previously used USE_RENDER / USE_PYTHON_BINDINGS names matched no
@@ -17,6 +17,9 @@ build:
     # (like gbs' own CI) so the package is actually exercised against the
     # current nlopt/vtk/... — an import-only test would not catch a numerical
     # regression in the nlopt-driven approximation/interpolation code.
+    # When cross-compiling (osx-arm64 is built on osx-64) the target binaries
+    # cannot run on the build machine, and gtest_discover_tests runs each test
+    # executable at build time, so the C++ tests are neither built nor run.
     - if: unix
       then: |
         cmake ${CMAKE_ARGS} -GNinja \
@@ -28,7 +31,8 @@ build:
           -D GBS_BUILD_STUBS:BOOL=FALSE \
           -D GBS_USE_RENDER:BOOL=TRUE \
           -D GBS_USE_PYTHON_BINDINGS:BOOL=TRUE \
-          -D GBS_BUILD_TESTS:BOOL=TRUE \
+          -D GBS_BUILD_TESTS:BOOL=${{ "FALSE" if build_platform != target_platform else "TRUE" }} \
+          -D Python3_EXECUTABLE="$PYTHON" \
           -D CMAKE_INSTALL_PREFIX=$PREFIX \
           . -B _build
         cmake --build _build --parallel ${CPU_COUNT}
@@ -36,9 +40,11 @@ build:
         # C++ tests (ctest). gbs-render is a SHARED lib installed in $PREFIX/lib;
         # expose it (and vtk/nlopt/...) at run time. No display needed: gbs' CI
         # runs ctest without xvfb on every OS.
-        export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
-        export DYLD_FALLBACK_LIBRARY_PATH="$PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
-        ctest --test-dir _build --output-on-failure -C Release
+        if [[ "${{ build_platform }}" == "${{ target_platform }}" ]]; then
+          export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
+          export DYLD_FALLBACK_LIBRARY_PATH="$PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
+          ctest --test-dir _build --output-on-failure -C Release
+        fi
     - if: win
       then: |
         cmake %CMAKE_ARGS% -GNinja ^
@@ -71,6 +77,11 @@ requirements:
     - ${{ stdlib("c") }}
     - ninja
     - cmake >=3.28
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
   host:
     - python
     - pybind11
