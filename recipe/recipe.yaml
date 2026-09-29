@@ -88,7 +88,10 @@ requirements:
     - libiges >=1.0.2
     - jupyterlab
     - pythreejs
-    - pyvista
+    # Some old pyvista builds (0.44.x) declare no upper bound on vtk, so the
+    # solver can pick one (e.g. 0.44.1) that imports vtkCapsuleSource, removed
+    # in vtk 9.7. 0.49 is the first release that supports vtk 9.7 (vtk-base <9.8).
+    - pyvista >=0.49
     - plotly
 tests:
   - python:
