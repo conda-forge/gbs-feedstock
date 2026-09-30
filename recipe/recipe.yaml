@@ -1,14 +1,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 context:
-  version: "0.4.5.4"
+  version: "0.5.1"
 package:
   name: gbs
   version: ${{ version }}
 source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 7232cd09a9a0319b0af2989edcf134e72c93eddf74c550775fe73a2a1eac1525
+  sha256: 3533ac769795a2dec41bd01d69afb8b2f5b3e35f2016c0377dea9542e26b9e23
 build:
-  number: 3
+  number: 0
   script:
     # NOTE: the real CMake options are GBS_-prefixed (see gbs/CMakeLists.txt).
     # The previously used USE_RENDER / USE_PYTHON_BINDINGS names matched no
@@ -18,8 +18,9 @@ build:
     # current nlopt/vtk/... — an import-only test would not catch a numerical
     # regression in the nlopt-driven approximation/interpolation code.
     # When cross-compiling (osx-arm64 is built on osx-64) the target binaries
-    # cannot run on the build machine, and gtest_discover_tests runs each test
-    # executable at build time, so the C++ tests are neither built nor run.
+    # cannot run on the build machine, and doctest_discover_tests runs each test
+    # executable at build time, so the C++ tests are neither built nor run
+    # (GBS_BUILD_TESTS=FALSE also skips find_package(doctest)).
     - if: unix
       then: |
         cmake ${CMAKE_ARGS} -GNinja \
@@ -66,7 +67,7 @@ build:
         cmake --install _build
         if errorlevel 1 exit 1
         :: C++ tests (ctest). Test exes + gbs-render.dll are co-located in
-        :: _build\bin (CMAKE_RUNTIME_OUTPUT_DIRECTORY) so gtest_discover_tests
+        :: _build\bin (CMAKE_RUNTIME_OUTPUT_DIRECTORY) so doctest_discover_tests
         :: finds gbs-render.dll at build time; the other DLLs (vtk/nlopt/tbb)
         :: are in %LIBRARY_PREFIX%\bin, already on PATH in the build env.
         ctest --test-dir _build --output-on-failure -C Release
@@ -91,7 +92,7 @@ requirements:
     - libboost-devel
     - rapidjson
     - libiges >=1.0.2
-    - gtest   # C++ tests: gbs picks up GTest via find_package in a conda build
+    - doctest # C++ tests: gbs >= 0.5 uses doctest (find_package(doctest) when GBS_BUILD_TESTS)
   run:
     - python
     - numpy
