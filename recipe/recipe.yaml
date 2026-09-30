@@ -1,14 +1,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 context:
-  version: "0.4.5.4"
+  version: "0.5.0"
 package:
   name: gbs
   version: ${{ version }}
 source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 7232cd09a9a0319b0af2989edcf134e72c93eddf74c550775fe73a2a1eac1525
+  sha256: c3dee80aeb69afd08338fea54f8c2cb9863dbbda4f5f5ea12f7fcdd67296e946
 build:
-  number: 3
+  number: 0
   script:
     # NOTE: the real CMake options are GBS_-prefixed (see gbs/CMakeLists.txt).
     # The previously used USE_RENDER / USE_PYTHON_BINDINGS names matched no
