@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 context:
-  version: "0.6.0"
+  version: "0.7.0"
 package:
   name: gbs
   version: ${{ version }}
 source:
   url: https://github.com/ssg-aero/gbs/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 1ae6b5de7e6470f320696bf00b3ffc5af82174d179998644a5bfa85336393ec8
+  sha256: 084df3fcb0db366319a2b5f90ad839556f82e961cfcce0e1d2974651605005c5
 build:
   number: 0
   script:
